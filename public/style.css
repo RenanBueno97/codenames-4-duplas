@@ -53,6 +53,10 @@ h1 { margin: 0 0 10px; }
 }
 .join-row input { width: 90px; text-transform: uppercase; }
 
+.mode-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.mode-btn { flex: 1; background: #333648; }
+.mode-btn.active { background: #3a7a5a; }
+
 button {
   padding: 8px 16px;
   border-radius: 6px;
@@ -76,6 +80,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   gap: 10px;
   margin: 16px 0;
 }
+.slots.two-col { grid-template-columns: repeat(2, 1fr); }
 .slot-team {
   border-radius: 8px;
   padding: 8px;

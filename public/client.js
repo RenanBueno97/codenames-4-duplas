@@ -1,9 +1,27 @@
 const socket = io();
 
-const TEAMS = [1, 2, 3, 4];
-const TEAM_NAMES = { 1: "Vermelha", 2: "Azul", 3: "Verde", 4: "Amarela" };
+const MODE_TEAMS = {
+  duplas: [1, 2, 3, 4],
+  squad: ["red", "blue"],
+};
+const MODE_TEAM_NAMES = {
+  duplas: { 1: "Vermelha", 2: "Azul", 3: "Verde", 4: "Amarela" },
+  squad: { red: "Vermelho", blue: "Azul" },
+};
+
+function cssTeamKey(team) {
+  if (team === "red") return 1;
+  if (team === "blue") return 2;
+  return team;
+}
+
+function teamLabel(mode, team) {
+  const name = MODE_TEAM_NAMES[mode][team];
+  return mode === "duplas" ? `Dupla ${name}` : `Lado ${name}`;
+}
 
 let myState = null;
+let createMode = "duplas";
 
 const el = (id) => document.getElementById(id);
 
@@ -12,10 +30,18 @@ const gameScreen = el("game-screen");
 const joinPanel = el("join-panel");
 const roomPanel = el("room-panel");
 
+function setCreateMode(mode) {
+  createMode = mode;
+  el("mode-duplas").classList.toggle("active", mode === "duplas");
+  el("mode-squad").classList.toggle("active", mode === "squad");
+}
+el("mode-duplas").addEventListener("click", () => setCreateMode("duplas"));
+el("mode-squad").addEventListener("click", () => setCreateMode("squad"));
+
 el("btn-create").addEventListener("click", () => {
   const name = el("name-input").value.trim();
   if (!name) return showJoinError("Digite seu nome.");
-  socket.emit("create-room", { name }, (res) => {
+  socket.emit("create-room", { name, mode: createMode }, (res) => {
     if (!res.ok) return showJoinError(res.error);
     enterRoomPanel();
   });
@@ -43,6 +69,12 @@ function enterRoomPanel() {
 
 el("btn-start").addEventListener("click", () => {
   socket.emit("start-game", {}, (res) => {
+    el("room-error").textContent = res.ok ? "" : res.error;
+  });
+});
+
+el("btn-shuffle").addEventListener("click", () => {
+  socket.emit("shuffle-teams", {}, (res) => {
     el("room-error").textContent = res.ok ? "" : res.error;
   });
 });
@@ -85,16 +117,34 @@ function render() {
 
 function renderLobby() {
   el("room-code").textContent = myState.code;
+  const isHost = myState.you.id === myState.hostId;
+  const isDuplas = myState.mode === "duplas";
 
+  el("duplas-panel").classList.toggle("hidden", !isDuplas);
+  el("squad-panel").classList.toggle("hidden", isDuplas);
+
+  if (isDuplas) {
+    renderDuplasSlots();
+  } else {
+    renderSquadPlayers(isHost);
+  }
+
+  el("btn-start").classList.toggle("hidden", !isHost);
+  el("start-hint").textContent = isHost
+    ? "Quando todos estiverem prontos, clique em Iniciar Jogo."
+    : "Aguardando o host iniciar a partida.";
+}
+
+function renderDuplasSlots() {
   const slotsEl = el("slots");
   slotsEl.innerHTML = "";
-  for (const team of TEAMS) {
+  for (const team of MODE_TEAMS.duplas) {
     const col = document.createElement("div");
     col.className = "slot-team";
 
     const label = document.createElement("div");
     label.className = `slot-team-label team${team}-color`;
-    label.textContent = `Dupla ${TEAM_NAMES[team]}`;
+    label.textContent = teamLabel("duplas", team);
     col.appendChild(label);
 
     for (const role of ["spy", "agent"]) {
@@ -115,33 +165,68 @@ function renderLobby() {
     }
     slotsEl.appendChild(col);
   }
+}
 
-  const isHost = myState.you.id === myState.hostId;
-  el("btn-start").classList.toggle("hidden", !isHost);
-  el("start-hint").textContent = isHost
-    ? "Quando todos escolherem sua vaga, clique em Iniciar Jogo."
-    : "Aguardando o host iniciar a partida.";
+function renderSquadPlayers(isHost) {
+  const container = el("squad-players");
+  container.className = "slots two-col";
+  container.innerHTML = "";
+
+  for (const side of MODE_TEAMS.squad) {
+    const col = document.createElement("div");
+    col.className = "slot-team";
+
+    const label = document.createElement("div");
+    label.className = `slot-team-label team${cssTeamKey(side)}-color`;
+    label.textContent = teamLabel("squad", side);
+    col.appendChild(label);
+
+    const members = myState.players.filter((p) => p.team === side);
+    if (members.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "slot-btn";
+      empty.textContent = "Vazio";
+      col.appendChild(empty);
+    }
+    members.forEach((p) => {
+      const row = document.createElement("div");
+      row.className = "slot-btn taken";
+      const roleLabel = p.role === "agent" ? "Agente" : p.role === "spy" ? "Espião" : "";
+      row.textContent = roleLabel ? `${p.name} (${roleLabel})` : p.name;
+      col.appendChild(row);
+    });
+    container.appendChild(col);
+  }
+
+  const unassigned = myState.players.filter((p) => !p.team);
+  el("squad-unassigned").textContent = unassigned.length
+    ? `Aguardando embaralhar: ${unassigned.map((p) => p.name).join(", ")}`
+    : "";
+
+  el("btn-shuffle").classList.toggle("hidden", !isHost);
 }
 
 function renderGame() {
+  const mode = myState.mode;
+  const teams = MODE_TEAMS[mode];
   const you = myState.you;
   const isMyTurn = you.team === myState.currentTeam;
 
-  el("turn-indicator").textContent = `Vez da Dupla ${TEAM_NAMES[myState.currentTeam]}`;
+  el("turn-indicator").textContent = `Turno: ${teamLabel(mode, myState.currentTeam)}`;
   el("turn-indicator").style.background = teamColor(myState.currentTeam);
   el("turn-indicator").style.color = "#10121a";
 
   const roleLabel = you.role === "spy" ? "Espião" : you.role === "agent" ? "Agente" : "Observador";
   el("you-are").textContent = you.team
-    ? `Você é: Dupla ${TEAM_NAMES[you.team]} — ${roleLabel}`
+    ? `Você é: ${teamLabel(mode, you.team)} — ${roleLabel}`
     : "Você está assistindo.";
 
   const scoreboard = el("scoreboard");
   scoreboard.innerHTML = "";
-  for (const team of TEAMS) {
+  for (const team of teams) {
     const badge = document.createElement("div");
-    badge.className = `score-badge team${team}-color`;
-    badge.textContent = `${TEAM_NAMES[team]}: ${myState.teamRemaining[team]}`;
+    badge.className = `score-badge team${cssTeamKey(team)}-color`;
+    badge.textContent = `${MODE_TEAM_NAMES[mode][team]}: ${myState.teamRemaining[team]}`;
     scoreboard.appendChild(badge);
   }
 
@@ -178,7 +263,7 @@ function renderGame() {
   clueLog.innerHTML = "";
   myState.clueLog.forEach((c) => {
     const line = document.createElement("div");
-    line.textContent = `Dupla ${TEAM_NAMES[c.team]}: "${c.word}" (${c.number})`;
+    line.textContent = `${teamLabel(mode, c.team)}: "${c.word}" (${c.number})`;
     clueLog.appendChild(line);
   });
   clueLog.scrollTop = clueLog.scrollHeight;
@@ -196,10 +281,10 @@ function renderGame() {
   if (myState.status === "over") {
     banner.classList.remove("hidden");
     if (myState.winner) {
-      banner.textContent = `Dupla ${TEAM_NAMES[myState.winner]} venceu.`;
+      banner.textContent = `${teamLabel(mode, myState.winner)} venceu.`;
       banner.style.background = teamColor(myState.winner);
     } else if (myState.loserTeam) {
-      banner.textContent = `Dupla ${TEAM_NAMES[myState.loserTeam]} caiu no assassino. Fim de jogo.`;
+      banner.textContent = `${teamLabel(mode, myState.loserTeam)} caiu no assassino. Fim de jogo.`;
       banner.style.background = "#222";
       banner.style.color = "#fff";
     }
@@ -211,9 +296,9 @@ function renderGame() {
 function ownerClass(owner) {
   if (owner === "neutral") return "neutral";
   if (owner === "assassin") return "assassin";
-  return `team${owner}`;
+  return `team${cssTeamKey(owner)}`;
 }
 
 function teamColor(team) {
-  return getComputedStyle(document.documentElement).getPropertyValue(`--team${team}`);
+  return getComputedStyle(document.documentElement).getPropertyValue(`--team${cssTeamKey(team)}`);
 }

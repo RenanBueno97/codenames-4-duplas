@@ -15,6 +15,11 @@
     <label>Seu nome
       <input id="name-input" type="text" maxlength="20" placeholder="Digite seu nome">
     </label>
+    <div class="mode-row">
+      <button id="mode-duplas" class="mode-btn active">4 Duplas</button>
+      <button id="mode-squad" class="mode-btn">Squad</button>
+    </div>
+    <p class="hint">4 Duplas: 4 times de 2 (espião + agente). Squad: 2 times de até 5, embaralhados.</p>
     <div class="join-row">
       <button id="btn-create">Criar Sala</button>
       <span>ou</span>
@@ -26,9 +31,17 @@
 
   <div id="room-panel" class="panel hidden">
     <h2>Sala <span id="room-code"></span></h2>
-    <p class="hint">Compartilhe esse código com as outras 7 pessoas.</p>
+    <p class="hint">Compartilhe esse código com o resto do grupo.</p>
 
-    <div id="slots" class="slots"></div>
+    <div id="duplas-panel">
+      <div id="slots" class="slots"></div>
+    </div>
+
+    <div id="squad-panel" class="hidden">
+      <div id="squad-players" class="slots"></div>
+      <p id="squad-unassigned" class="hint"></p>
+      <button id="btn-shuffle" class="hidden">Embaralhar Equipes</button>
+    </div>
 
     <button id="btn-start" class="hidden">Iniciar Jogo</button>
     <p id="start-hint" class="hint"></p>
