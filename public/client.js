@@ -234,9 +234,12 @@ function renderGame() {
   el("turn-indicator").style.color = "#10121a";
 
   const roleLabel = you.role === "spy" ? "Espião" : you.role === "agent" ? "Agente" : "Observador";
-  el("you-are").textContent = you.team
-    ? `Você é: ${teamLabel(mode, you.team)} — ${roleLabel}`
-    : "Você está assistindo.";
+  let youAreText = you.team ? `Você é: ${teamLabel(mode, you.team)} — ${roleLabel}` : "Você está assistindo.";
+  if (myState.status === "playing" && myState.phase === "guess") {
+    const left = myState.guessLimit === null ? "sem limite" : Math.max(0, myState.guessLimit - myState.guessesUsed);
+    youAreText += ` — Palpites restantes: ${left}`;
+  }
+  el("you-are").textContent = youAreText;
 
   const scoreboard = el("scoreboard");
   scoreboard.innerHTML = "";

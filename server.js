@@ -79,6 +79,8 @@ function newRoom(code, hostId, mode) {
     phase: null,
     phaseDeadline: null,
     timer: null,
+    guessLimit: Infinity,
+    guessesUsed: 0,
   };
   rooms.set(code, room);
   return room;
@@ -168,6 +170,8 @@ function broadcastState(room) {
       hostId: room.hostId,
       phase: room.phase,
       phaseDeadline: room.phaseDeadline,
+      guessLimit: Number.isFinite(room.guessLimit) ? room.guessLimit : null,
+      guessesUsed: room.guessesUsed,
     });
   }
 }
@@ -261,6 +265,8 @@ io.on("connection", (socket) => {
     room.winner = null;
     room.loserTeam = null;
     room.clueLog = [];
+    room.guessLimit = Infinity;
+    room.guessesUsed = 0;
     room.status = "playing";
     startCluePhase(room);
     cb({ ok: true });
@@ -272,6 +278,9 @@ io.on("connection", (socket) => {
     if (!room || room.status !== "playing" || room.phase !== "clue") return;
     const player = room.players.get(socket.id);
     if (!player || player.role !== "spy" || player.team !== room.currentTeam) return;
+    const n = parseInt(String(number).trim(), 10);
+    room.guessLimit = Number.isInteger(n) && n >= 0 ? n + 1 : Infinity;
+    room.guessesUsed = 0;
     room.clueLog.push({ team: player.team, word: String(word || "").slice(0, 40), number: String(number || "").slice(0, 8) });
     startGuessPhase(room);
     broadcastState(room);
@@ -286,6 +295,7 @@ io.on("connection", (socket) => {
     if (!card || card.revealed) return;
 
     card.revealed = true;
+    room.guessesUsed += 1;
 
     if (card.owner === "assassin") {
       stopTimer(room);
@@ -308,6 +318,9 @@ io.on("connection", (socket) => {
     }
 
     if (card.owner !== room.currentTeam) {
+      passTurn(room);
+      startCluePhase(room);
+    } else if (room.guessesUsed >= room.guessLimit) {
       passTurn(room);
       startCluePhase(room);
     }
@@ -335,6 +348,8 @@ io.on("connection", (socket) => {
     room.winner = null;
     room.loserTeam = null;
     room.clueLog = [];
+    room.guessLimit = Infinity;
+    room.guessesUsed = 0;
     room.status = "playing";
     startCluePhase(room);
     broadcastState(room);
