@@ -137,32 +137,32 @@ io.on("connection", (socket) => {
 
   socket.on("pick-slot", ({ team, role }, cb) => {
     const room = rooms.get(socket.data.roomCode);
-    if (!room) return cb && cb({ ok: false, error: "Sala inválida." });
-    if (room.status !== "lobby") return cb && cb({ ok: false, error: "Jogo já começou." });
+    if (!room) return cb({ ok: false, error: "Sala inválida." });
+    if (room.status !== "lobby") return cb({ ok: false, error: "Jogo já começou." });
     if (!TEAMS.includes(team) || !["spy", "agent"].includes(role)) {
-      return cb && cb({ ok: false, error: "Vaga inválida." });
+      return cb({ ok: false, error: "Vaga inválida." });
     }
     if (slotTaken(room, team, role, socket.id)) {
-      return cb && cb({ ok: false, error: "Vaga já ocupada." });
+      return cb({ ok: false, error: "Vaga já ocupada." });
     }
     const player = room.players.get(socket.id);
     player.team = team;
     player.role = role;
-    cb && cb({ ok: true });
+    cb({ ok: true });
     broadcastState(room);
   });
 
-  socket.on("start-game", (_payload, cb) => {
+  socket.on("start-game", (payload, cb) => {
     const room = rooms.get(socket.data.roomCode);
-    if (!room) return cb && cb({ ok: false, error: "Sala inválida." });
-    if (socket.id !== room.hostId) return cb && cb({ ok: false, error: "Só o host pode iniciar." });
+    if (!room) return cb({ ok: false, error: "Sala inválida." });
+    if (socket.id !== room.hostId) return cb({ ok: false, error: "Só o host pode iniciar." });
     room.board = buildBoard();
     room.teamRemaining = { ...TEAM_COUNTS };
     room.currentTeam = 1;
     room.winner = null;
     room.clueLog = [];
     room.status = "playing";
-    cb && cb({ ok: true });
+    cb({ ok: true });
     broadcastState(room);
   });
 

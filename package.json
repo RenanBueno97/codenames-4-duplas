@@ -1,8 +1,13 @@
 {
   "name": "codenames-4-duplas",
   "version": "1.0.0",
+  "description": "Codenames multiplayer para 4 duplas, com espiao e agente por equipe.",
   "private": true,
+  "license": "UNLICENSED",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js"
   },

@@ -43,7 +43,7 @@ function enterRoomPanel() {
 
 el("btn-start").addEventListener("click", () => {
   socket.emit("start-game", {}, (res) => {
-    if (!res.ok) alert(res.error);
+    el("room-error").textContent = res.ok ? "" : res.error;
   });
 });
 
@@ -108,7 +108,7 @@ function renderLobby() {
       btn.addEventListener("click", () => {
         if (occupant && occupant.id !== myState.you.id) return;
         socket.emit("pick-slot", { team, role }, (res) => {
-          if (res && !res.ok) alert(res.error);
+          el("room-error").textContent = res.ok ? "" : res.error;
         });
       });
       col.appendChild(btn);
@@ -196,10 +196,10 @@ function renderGame() {
   if (myState.status === "over") {
     banner.classList.remove("hidden");
     if (myState.winner) {
-      banner.textContent = `🏆 Dupla ${TEAM_NAMES[myState.winner]} venceu!`;
+      banner.textContent = `Dupla ${TEAM_NAMES[myState.winner]} venceu.`;
       banner.style.background = teamColor(myState.winner);
     } else if (myState.loserTeam) {
-      banner.textContent = `💀 Dupla ${TEAM_NAMES[myState.loserTeam]} caiu no assassino! Fim de jogo.`;
+      banner.textContent = `Dupla ${TEAM_NAMES[myState.loserTeam]} caiu no assassino. Fim de jogo.`;
       banner.style.background = "#222";
       banner.style.color = "#fff";
     }
