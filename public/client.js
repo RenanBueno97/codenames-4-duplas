@@ -101,6 +101,23 @@ socket.on("state", (state) => {
   render();
 });
 
+setInterval(updatePhaseTimer, 250);
+
+function updatePhaseTimer() {
+  const timerEl = el("phase-timer");
+  if (!myState || myState.status !== "playing" || !myState.phaseDeadline) {
+    timerEl.textContent = "";
+    timerEl.classList.remove("low");
+    return;
+  }
+  const seconds = Math.max(0, Math.ceil((myState.phaseDeadline - Date.now()) / 1000));
+  const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
+  const phaseLabel = myState.phase === "clue" ? "Dica" : "Resposta";
+  timerEl.textContent = `${phaseLabel}: ${mm}:${ss}`;
+  timerEl.classList.toggle("low", seconds <= 10);
+}
+
 function render() {
   if (!myState) return;
 
@@ -245,6 +262,7 @@ function renderGame() {
 
     const canClick =
       myState.status === "playing" &&
+      myState.phase === "guess" &&
       !card.revealed &&
       you.role === "agent" &&
       isMyTurn;
@@ -268,7 +286,7 @@ function renderGame() {
   });
   clueLog.scrollTop = clueLog.scrollHeight;
 
-  const canSendClue = myState.status === "playing" && you.role === "spy" && isMyTurn;
+  const canSendClue = myState.status === "playing" && myState.phase === "clue" && you.role === "spy" && isMyTurn;
   el("clue-input-row").classList.toggle("hidden", !canSendClue);
 
   const canEndTurn = myState.status === "playing" && isMyTurn;

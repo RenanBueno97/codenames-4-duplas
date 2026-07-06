@@ -25,6 +25,9 @@ const MODES = {
   },
 };
 
+const CLUE_TIME_MS = 90 * 1000;
+const GUESS_TIME_MS = 90 * 1000;
+
 const rooms = new Map();
 
 function makeRoomCode() {
@@ -73,9 +76,44 @@ function newRoom(code, hostId, mode) {
     loserTeam: null,
     clueLog: [],
     hostId,
+    phase: null,
+    phaseDeadline: null,
+    timer: null,
   };
   rooms.set(code, room);
   return room;
+}
+
+function schedulePhase(room, phase, ms, onExpire) {
+  clearTimeout(room.timer);
+  room.phase = phase;
+  room.phaseDeadline = Date.now() + ms;
+  room.timer = setTimeout(() => {
+    if (room.status !== "playing") return;
+    onExpire(room);
+  }, ms);
+}
+
+function startCluePhase(room) {
+  schedulePhase(room, "clue", CLUE_TIME_MS, (r) => {
+    passTurn(r);
+    startCluePhase(r);
+    broadcastState(r);
+  });
+}
+
+function startGuessPhase(room) {
+  schedulePhase(room, "guess", GUESS_TIME_MS, (r) => {
+    passTurn(r);
+    startCluePhase(r);
+    broadcastState(r);
+  });
+}
+
+function stopTimer(room) {
+  clearTimeout(room.timer);
+  room.phase = null;
+  room.phaseDeadline = null;
 }
 
 function slotTaken(room, team, role, excludeSocketId) {
@@ -128,6 +166,8 @@ function broadcastState(room) {
       loserTeam: room.loserTeam || null,
       clueLog: room.clueLog,
       hostId: room.hostId,
+      phase: room.phase,
+      phaseDeadline: room.phaseDeadline,
     });
   }
 }
@@ -222,22 +262,24 @@ io.on("connection", (socket) => {
     room.loserTeam = null;
     room.clueLog = [];
     room.status = "playing";
+    startCluePhase(room);
     cb({ ok: true });
     broadcastState(room);
   });
 
   socket.on("send-clue", ({ word, number }) => {
     const room = rooms.get(socket.data.roomCode);
-    if (!room || room.status !== "playing") return;
+    if (!room || room.status !== "playing" || room.phase !== "clue") return;
     const player = room.players.get(socket.id);
     if (!player || player.role !== "spy" || player.team !== room.currentTeam) return;
     room.clueLog.push({ team: player.team, word: String(word || "").slice(0, 40), number: String(number || "").slice(0, 8) });
+    startGuessPhase(room);
     broadcastState(room);
   });
 
   socket.on("guess", ({ index }) => {
     const room = rooms.get(socket.data.roomCode);
-    if (!room || room.status !== "playing") return;
+    if (!room || room.status !== "playing" || room.phase !== "guess") return;
     const player = room.players.get(socket.id);
     if (!player || player.role !== "agent" || player.team !== room.currentTeam) return;
     const card = room.board[index];
@@ -246,6 +288,7 @@ io.on("connection", (socket) => {
     card.revealed = true;
 
     if (card.owner === "assassin") {
+      stopTimer(room);
       room.status = "over";
       room.winner = null;
       room.loserTeam = player.team;
@@ -256,6 +299,7 @@ io.on("connection", (socket) => {
     if (card.owner !== "neutral") {
       room.teamRemaining[card.owner] -= 1;
       if (room.teamRemaining[card.owner] === 0) {
+        stopTimer(room);
         room.status = "over";
         room.winner = card.owner;
         broadcastState(room);
@@ -265,6 +309,7 @@ io.on("connection", (socket) => {
 
     if (card.owner !== room.currentTeam) {
       passTurn(room);
+      startCluePhase(room);
     }
 
     broadcastState(room);
@@ -276,6 +321,7 @@ io.on("connection", (socket) => {
     const player = room.players.get(socket.id);
     if (!player || player.team !== room.currentTeam) return;
     passTurn(room);
+    startCluePhase(room);
     broadcastState(room);
   });
 
@@ -290,6 +336,7 @@ io.on("connection", (socket) => {
     room.loserTeam = null;
     room.clueLog = [];
     room.status = "playing";
+    startCluePhase(room);
     broadcastState(room);
   });
 
@@ -298,6 +345,7 @@ io.on("connection", (socket) => {
     if (!room) return;
     room.players.delete(socket.id);
     if (room.players.size === 0) {
+      clearTimeout(room.timer);
       rooms.delete(room.code);
       return;
     }

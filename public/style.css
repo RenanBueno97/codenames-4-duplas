@@ -121,6 +121,17 @@ header {
   background: var(--panel);
 }
 
+.phase-timer {
+  font-size: 1.1em;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--panel);
+  min-width: 90px;
+  text-align: center;
+}
+.phase-timer.low { color: #ff6b6b; }
+
 .scoreboard {
   display: flex;
   gap: 10px;
