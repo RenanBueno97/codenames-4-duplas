@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codenames — 4 Duplas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="lobby-screen" class="screen">
+  <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
+
+  <div id="join-panel" class="panel">
+    <label>Seu nome
+      <input id="name-input" type="text" maxlength="20" placeholder="Digite seu nome">
+    </label>
+    <div class="join-row">
+      <button id="btn-create">Criar Sala</button>
+      <span>ou</span>
+      <input id="code-input" type="text" maxlength="4" placeholder="CÓDIGO">
+      <button id="btn-join">Entrar</button>
+    </div>
+    <p id="join-error" class="error"></p>
+  </div>
+
+  <div id="room-panel" class="panel hidden">
+    <h2>Sala <span id="room-code"></span></h2>
+    <p class="hint">Compartilhe esse código com as outras 7 pessoas.</p>
+
+    <div id="slots" class="slots"></div>
+
+    <button id="btn-start" class="hidden">Iniciar Jogo</button>
+    <p id="start-hint" class="hint"></p>
+  </div>
+</div>
+
+<div id="game-screen" class="screen hidden">
+  <header>
+    <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
+    <div id="turn-indicator" class="turn-indicator"></div>
+  </header>
+
+  <div id="scoreboard" class="scoreboard"></div>
+  <div id="you-are" class="you-are"></div>
+
+  <div id="board" class="board"></div>
+
+  <div id="clue-panel" class="clue-panel">
+    <div class="clue-input-row hidden" id="clue-input-row">
+      <input id="clue-word" type="text" maxlength="40" placeholder="Palavra-dica">
+      <input id="clue-number" type="text" maxlength="8" placeholder="Nº">
+      <button id="btn-send-clue">Enviar Dica</button>
+    </div>
+    <div id="clue-log" class="clue-log"></div>
+  </div>
+
+  <div class="controls">
+    <button id="btn-end-turn">Encerrar Turno</button>
+    <button id="btn-new-game" class="hidden">🔄 Novo Jogo</button>
+  </div>
+
+  <div id="banner" class="banner hidden"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

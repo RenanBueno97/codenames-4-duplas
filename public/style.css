@@ -1,0 +1,210 @@
+:root {
+  --team1: #e74c3c;
+  --team2: #3498db;
+  --team3: #2ecc71;
+  --team4: #f1c40f;
+  --neutral: #d9c9a3;
+  --assassin: #222222;
+  --bg: #1b1d23;
+  --panel: #262932;
+  --text: #f2f2f2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 20px;
+}
+
+h1 { margin: 0 0 10px; }
+.subtitle { font-size: 0.5em; opacity: 0.7; font-weight: normal; }
+
+.hidden { display: none !important; }
+
+.panel {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+.panel label { display: block; margin-bottom: 12px; }
+.panel input[type="text"] {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #10121a;
+  color: var(--text);
+}
+
+.join-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.join-row input { width: 90px; text-transform: uppercase; }
+
+button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #4a5568;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+button:hover { background: #5a6578; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.error { color: #ff6b6b; min-height: 1.2em; }
+.hint { opacity: 0.7; font-size: 0.9em; }
+
+#room-code { color: #ffd76b; letter-spacing: 3px; }
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+.slot-team {
+  border-radius: 8px;
+  padding: 8px;
+  background: #10121a;
+}
+.slot-team-label {
+  text-align: center;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 4px;
+  margin-bottom: 6px;
+  color: #10121a;
+}
+.slot-btn {
+  width: 100%;
+  margin-bottom: 6px;
+  background: #333648;
+  font-size: 0.85em;
+  text-align: left;
+  padding: 6px 8px;
+}
+.slot-btn.taken { background: #1c5a3a; cursor: default; }
+.slot-btn.mine { outline: 2px solid #fff; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.turn-indicator {
+  font-size: 1.1em;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--panel);
+}
+
+.scoreboard {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.score-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  color: #10121a;
+}
+
+.you-are {
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+@media (max-width: 700px) {
+  .board { grid-template-columns: repeat(3, 1fr); }
+}
+
+.card {
+  aspect-ratio: 3 / 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  border-radius: 8px;
+  background: #3a3d47;
+  color: #fff;
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  border: 2px solid transparent;
+}
+.card.clickable:hover { border-color: #fff; }
+.card.not-clickable { cursor: default; }
+
+.card.spy-hint.team1 { border-color: var(--team1); background: #3a3d47; }
+.card.spy-hint.team2 { border-color: var(--team2); }
+.card.spy-hint.team3 { border-color: var(--team3); }
+.card.spy-hint.team4 { border-color: var(--team4); }
+.card.spy-hint.neutral { border-color: var(--neutral); }
+.card.spy-hint.assassin { border-color: var(--assassin); }
+
+.card.revealed.team1 { background: var(--team1); }
+.card.revealed.team2 { background: var(--team2); }
+.card.revealed.team3 { background: var(--team3); }
+.card.revealed.team4 { background: var(--team4); color: #10121a; }
+.card.revealed.neutral { background: var(--neutral); color: #10121a; }
+.card.revealed.assassin { background: var(--assassin); }
+
+.clue-panel {
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0;
+}
+.clue-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.clue-input-row input { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #444; background: #10121a; color: var(--text); }
+.clue-input-row input#clue-number { flex: 0 0 60px; }
+
+.clue-log { max-height: 120px; overflow-y: auto; font-size: 0.9em; }
+.clue-log div { padding: 3px 0; border-bottom: 1px solid #333; }
+
+.controls { display: flex; gap: 10px; margin: 12px 0; }
+
+.banner {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 1.3em;
+  font-weight: bold;
+  text-align: center;
+  background: #ffd76b;
+  color: #10121a;
+}
+
+.team1-color { background: var(--team1); }
+.team2-color { background: var(--team2); }
+.team3-color { background: var(--team3); }
+.team4-color { background: var(--team4); }
