@@ -29,53 +29,58 @@
     <p id="join-error" class="error"></p>
   </div>
 
-  <div id="room-panel" class="panel hidden">
-    <h2>Sala <span id="room-code"></span></h2>
-    <p class="hint">Compartilhe esse código com o resto do grupo.</p>
+  <div id="room-panel" class="hidden">
+    <div class="match-layout">
+      <div id="lobby-panels-left" class="team-column"></div>
 
-    <div id="duplas-panel">
-      <div id="slots" class="slots"></div>
+      <div class="center-panel">
+        <h2>Sala <span id="room-code"></span></h2>
+        <p class="hint">Compartilhe esse código com o resto do grupo.</p>
+        <p id="squad-unassigned" class="hint"></p>
+        <button id="btn-shuffle" class="hidden">Embaralhar Equipes</button>
+        <button id="btn-start" class="hidden">Iniciar Jogo</button>
+        <p id="start-hint" class="hint"></p>
+        <p id="room-error" class="error"></p>
+      </div>
+
+      <div id="lobby-panels-right" class="team-column"></div>
     </div>
-
-    <div id="squad-panel" class="hidden">
-      <div id="squad-players" class="slots"></div>
-      <p id="squad-unassigned" class="hint"></p>
-      <button id="btn-shuffle" class="hidden">Embaralhar Equipes</button>
-    </div>
-
-    <button id="btn-start" class="hidden">Iniciar Jogo</button>
-    <p id="start-hint" class="hint"></p>
-    <p id="room-error" class="error"></p>
   </div>
 </div>
 
 <div id="game-screen" class="screen hidden">
-  <header>
-    <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
-    <div id="turn-indicator" class="turn-indicator"></div>
-    <div id="phase-timer" class="phase-timer"></div>
-  </header>
+  <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
 
-  <div id="scoreboard" class="scoreboard"></div>
-  <div id="you-are" class="you-are"></div>
+  <div class="match-layout">
+    <div id="game-panels-left" class="team-column"></div>
+
+    <div class="center-panel">
+      <div id="turn-indicator" class="turn-indicator"></div>
+      <div id="phase-timer" class="phase-timer"></div>
+      <div class="timer-bar-track"><div id="timer-bar-fill" class="timer-bar-fill"></div></div>
+      <div id="you-are" class="you-are"></div>
+
+      <div class="clue-input-row hidden" id="clue-input-row">
+        <input id="clue-word" type="text" maxlength="40" placeholder="Palavra-dica">
+        <input id="clue-number" type="text" maxlength="8" placeholder="Nº">
+        <button id="btn-send-clue">Enviar Dica</button>
+      </div>
+
+      <div class="register-title">Registro</div>
+      <div id="history-log" class="history-log"></div>
+
+      <div class="controls">
+        <button id="btn-end-turn">Encerrar Turno</button>
+        <button id="btn-new-game" class="hidden">Nova Partida</button>
+      </div>
+
+      <div id="banner" class="banner hidden"></div>
+    </div>
+
+    <div id="game-panels-right" class="team-column"></div>
+  </div>
 
   <div id="board" class="board"></div>
-
-  <div id="clue-panel" class="clue-panel">
-    <div class="clue-input-row hidden" id="clue-input-row">
-      <input id="clue-word" type="text" maxlength="40" placeholder="Palavra-dica">
-      <input id="clue-number" type="text" maxlength="8" placeholder="Nº">
-      <button id="btn-send-clue">Enviar Dica</button>
-    </div>
-    <div id="clue-log" class="clue-log"></div>
-  </div>
-
-  <div class="controls">
-    <button id="btn-end-turn">Encerrar Turno</button>
-    <button id="btn-new-game" class="hidden">Nova Partida</button>
-  </div>
-
-  <div id="banner" class="banner hidden"></div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

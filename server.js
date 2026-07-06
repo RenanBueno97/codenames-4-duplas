@@ -74,7 +74,7 @@ function newRoom(code, hostId, mode) {
     currentTeam: MODES[mode].teams[0],
     winner: null,
     loserTeam: null,
-    clueLog: [],
+    history: [],
     hostId,
     phase: null,
     phaseDeadline: null,
@@ -166,7 +166,7 @@ function broadcastState(room) {
       currentTeam: room.currentTeam,
       winner: room.winner,
       loserTeam: room.loserTeam || null,
-      clueLog: room.clueLog,
+      history: room.history,
       hostId: room.hostId,
       phase: room.phase,
       phaseDeadline: room.phaseDeadline,
@@ -264,7 +264,7 @@ io.on("connection", (socket) => {
     room.currentTeam = MODES[room.mode].teams[0];
     room.winner = null;
     room.loserTeam = null;
-    room.clueLog = [];
+    room.history = [];
     room.guessLimit = Infinity;
     room.guessesUsed = 0;
     room.status = "playing";
@@ -281,7 +281,14 @@ io.on("connection", (socket) => {
     const n = parseInt(String(number).trim(), 10);
     room.guessLimit = Number.isInteger(n) && n >= 0 ? n + 1 : Infinity;
     room.guessesUsed = 0;
-    room.clueLog.push({ team: player.team, word: String(word || "").slice(0, 40), number: String(number || "").slice(0, 8) });
+    room.history.push({
+      type: "clue",
+      team: player.team,
+      playerId: socket.id,
+      playerName: player.name,
+      word: String(word || "").slice(0, 40),
+      number: String(number || "").slice(0, 8),
+    });
     startGuessPhase(room);
     broadcastState(room);
   });
@@ -296,6 +303,15 @@ io.on("connection", (socket) => {
 
     card.revealed = true;
     room.guessesUsed += 1;
+    room.history.push({
+      type: "guess",
+      team: player.team,
+      playerId: socket.id,
+      playerName: player.name,
+      word: card.word,
+      owner: card.owner,
+      correct: card.owner === player.team,
+    });
 
     if (card.owner === "assassin") {
       stopTimer(room);
@@ -347,7 +363,7 @@ io.on("connection", (socket) => {
     room.currentTeam = MODES[room.mode].teams[0];
     room.winner = null;
     room.loserTeam = null;
-    room.clueLog = [];
+    room.history = [];
     room.guessLimit = Infinity;
     room.guessesUsed = 0;
     room.status = "playing";

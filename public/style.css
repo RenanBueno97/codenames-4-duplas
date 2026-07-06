@@ -20,7 +20,7 @@ body {
   padding: 20px;
 }
 
-h1 { margin: 0 0 10px; }
+h1 { margin: 0 0 10px; text-align: center; }
 .subtitle { font-size: 0.5em; opacity: 0.7; font-weight: normal; }
 
 .hidden { display: none !important; }
@@ -74,87 +74,144 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #room-code { color: #ffd76b; letter-spacing: 3px; }
 
-.slots {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin: 16px 0;
+.match-layout {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  max-width: 1100px;
+  margin: 0 auto;
 }
-.slots.two-col { grid-template-columns: repeat(2, 1fr); }
-.slot-team {
-  border-radius: 8px;
-  padding: 8px;
-  background: #10121a;
+
+.team-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 190px;
 }
-.slot-team-label {
+
+.center-panel {
+  flex: 1 1 360px;
+  max-width: 440px;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 18px;
+}
+.center-panel h2 { margin-top: 0; }
+
+.team-panel {
+  border-radius: 12px;
+  padding: 10px;
+  color: #10121a;
+  transition: box-shadow 0.2s;
+}
+.team-panel.active-turn { box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(255, 255, 255, 0.6); }
+
+.team-panel-title {
   text-align: center;
   font-weight: bold;
-  border-radius: 4px;
-  padding: 4px;
-  margin-bottom: 6px;
-  color: #10121a;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 2px 0 6px;
 }
-.slot-btn {
-  width: 100%;
-  margin-bottom: 6px;
-  background: #333648;
-  font-size: 0.85em;
-  text-align: left;
-  padding: 6px 8px;
-}
-.slot-btn.taken { background: #1c5a3a; cursor: default; }
-.slot-btn.mine { outline: 2px solid #fff; }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+.team-score {
+  text-align: center;
+  font-size: 2.2em;
+  font-weight: bold;
+  margin: 2px 0 8px;
+  line-height: 1;
 }
+
+.avatar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 6px;
+  min-height: 60px;
+  align-content: flex-start;
+}
+.avatar-row-empty { font-size: 0.75em; opacity: 0.6; padding: 18px 0; }
+
+.avatar-item { display: flex; flex-direction: column; align-items: center; width: 52px; }
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  object-fit: cover;
+}
+.avatar-item.mine .avatar-img { box-shadow: 0 0 0 2px #10121a, 0 0 0 4px #fff; }
+.avatar-name {
+  font-size: 0.65em;
+  margin-top: 3px;
+  text-align: center;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar-empty { cursor: pointer; }
+.avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px dashed rgba(16, 18, 26, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3em;
+  font-weight: bold;
+  color: rgba(16, 18, 26, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+}
+.avatar-empty:hover .avatar-placeholder { background: rgba(255, 255, 255, 0.3); }
 
 .turn-indicator {
   font-size: 1.1em;
   font-weight: bold;
   padding: 6px 14px;
   border-radius: 20px;
-  background: var(--panel);
+  background: #10121a;
+  text-align: center;
 }
 
 .phase-timer {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: bold;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: var(--panel);
-  min-width: 90px;
   text-align: center;
+  margin-top: 6px;
 }
 .phase-timer.low { color: #ff6b6b; }
 
-.scoreboard {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0;
-  flex-wrap: wrap;
+.timer-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #10121a;
+  overflow: hidden;
+  margin: 6px 0 12px;
 }
-.score-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: bold;
-  color: #10121a;
+.timer-bar-fill {
+  height: 100%;
+  background: #4fa3e3;
+  width: 100%;
+  transition: width 0.25s linear;
 }
+.timer-bar-fill.low { background: #ff6b6b; }
 
-.you-are {
-  margin-bottom: 10px;
-  opacity: 0.85;
-}
+.you-are { margin-bottom: 10px; opacity: 0.85; text-align: center; }
 
 .board {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
-  margin: 16px 0;
+  margin: 20px auto 16px;
+  max-width: 1100px;
 }
 @media (max-width: 700px) {
   .board { grid-template-columns: repeat(3, 1fr); }
@@ -194,18 +251,50 @@ header {
 .card.revealed.neutral { background: var(--neutral); color: #10121a; }
 .card.revealed.assassin { background: var(--assassin); }
 
-.clue-panel {
-  background: var(--panel);
-  border-radius: 8px;
-  padding: 10px;
-  margin: 10px 0;
-}
-.clue-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.clue-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .clue-input-row input { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #444; background: #10121a; color: var(--text); }
 .clue-input-row input#clue-number { flex: 0 0 60px; }
 
-.clue-log { max-height: 120px; overflow-y: auto; font-size: 0.9em; }
-.clue-log div { padding: 3px 0; border-bottom: 1px solid #333; }
+.register-title {
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  margin: 4px 0 6px;
+  font-size: 0.85em;
+}
+
+.history-log {
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.history-entry {
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: #10121a;
+  font-size: 0.85em;
+}
+.history-clue { display: flex; align-items: center; gap: 6px; font-weight: bold; }
+.history-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.history-clue-word { flex: 1; }
+.history-clue-number {
+  background: #4a5568;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+}
+.history-guess { display: flex; align-items: center; gap: 6px; padding: 3px 0 3px 16px; opacity: 0.9; }
+.history-guess .mark { font-weight: bold; }
+.history-guess.correct .mark { color: #2ecc71; }
+.history-guess.wrong .mark { color: #ffb84d; }
+.history-guess.assassin .mark { color: #ff4d4d; }
 
 .controls { display: flex; gap: 10px; margin: 12px 0; }
 
