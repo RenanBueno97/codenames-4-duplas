@@ -23,7 +23,13 @@ const MODES = {
     neutralCount: 7,
     maxPerSide: 5,
   },
+  duet: {
+    teams: ["p1", "p2"],
+  },
 };
+
+const DUET_AGENT_COUNT = 9;
+const DUET_ASSASSIN_COUNT = 1;
 
 const CLUE_TIME_MS = 90 * 1000;
 const GUESS_TIME_MS = 90 * 1000;
@@ -63,6 +69,35 @@ function buildBoard(mode) {
   return words.map((word, i) => ({ word, owner: owners[i], revealed: false }));
 }
 
+function buildDuetKeyCard() {
+  let labels = [
+    ...Array(DUET_AGENT_COUNT).fill("agent"),
+    ...Array(DUET_ASSASSIN_COUNT).fill("assassin"),
+  ];
+  labels = labels.concat(Array(25 - labels.length).fill("neutral"));
+  return shuffle(labels);
+}
+
+function mergeDuetOwner(labelP1, labelP2) {
+  if (labelP1 === "assassin" || labelP2 === "assassin") return "assassin";
+  if (labelP1 === "agent" || labelP2 === "agent") return "agent";
+  return "neutral";
+}
+
+function buildDuetBoard() {
+  const uniqueWords = [...new Set(WORD_BANK)];
+  const words = shuffle(uniqueWords).slice(0, 25);
+  const keyP1 = buildDuetKeyCard();
+  const keyP2 = buildDuetKeyCard();
+  const board = words.map((word, i) => ({
+    word,
+    revealed: false,
+    owner: mergeDuetOwner(keyP1[i], keyP2[i]),
+  }));
+  const agentsTotal = board.filter((c) => c.owner === "agent").length;
+  return { board, keyCards: { p1: keyP1, p2: keyP2 }, agentsTotal };
+}
+
 function newRoom(code, hostId, mode) {
   const room = {
     code,
@@ -81,6 +116,9 @@ function newRoom(code, hostId, mode) {
     timer: null,
     guessLimit: Infinity,
     guessesUsed: 0,
+    keyCards: null,
+    agentsFound: 0,
+    agentsTotal: 0,
   };
   rooms.set(code, room);
   return room;
@@ -143,14 +181,28 @@ function playersList(room) {
   }));
 }
 
-function boardForRole(room, role) {
+function boardForPlayer(room, player) {
   if (!room.board) return null;
-  if (role === "spy") return room.board;
+  if (room.mode === "duet") {
+    const myKey = room.keyCards && player.team ? room.keyCards[player.team] : null;
+    return room.board.map((c, i) => ({
+      word: c.word,
+      revealed: c.revealed,
+      owner: c.revealed ? c.owner : myKey ? myKey[i] : null,
+    }));
+  }
+  if (player.role === "spy") return room.board;
   return room.board.map((c) => ({
     word: c.word,
     revealed: c.revealed,
     owner: c.revealed ? c.owner : null,
   }));
+}
+
+function playerRole(room, player) {
+  if (room.mode !== "duet") return player.role;
+  if (!player.team) return null;
+  return player.team === room.currentTeam ? "spy" : "agent";
 }
 
 function broadcastState(room) {
@@ -160,8 +212,8 @@ function broadcastState(room) {
       mode: room.mode,
       status: room.status,
       players: playersList(room),
-      you: { id: sid, team: p.team, role: p.role },
-      board: boardForRole(room, p.role),
+      you: { id: sid, team: p.team, role: playerRole(room, p) },
+      board: boardForPlayer(room, p),
       teamRemaining: room.teamRemaining,
       currentTeam: room.currentTeam,
       winner: room.winner,
@@ -172,6 +224,8 @@ function broadcastState(room) {
       phaseDeadline: room.phaseDeadline,
       guessLimit: Number.isFinite(room.guessLimit) ? room.guessLimit : null,
       guessesUsed: room.guessesUsed,
+      agentsFound: room.agentsFound,
+      agentsTotal: room.agentsTotal,
     });
   }
 }
@@ -184,7 +238,7 @@ function passTurn(room) {
 
 io.on("connection", (socket) => {
   socket.on("create-room", ({ name, mode }, cb) => {
-    const finalMode = mode === "squad" ? "squad" : "duplas";
+    const finalMode = mode === "squad" ? "squad" : mode === "duet" ? "duet" : "duplas";
     const code = makeRoomCode();
     const room = newRoom(code, socket.id, finalMode);
     room.players.set(socket.id, { name: name || "Jogador", team: null, role: null });
@@ -207,8 +261,21 @@ io.on("connection", (socket) => {
   socket.on("pick-slot", ({ team, role }, cb) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room) return cb({ ok: false, error: "Sala inválida." });
-    if (room.mode !== "duplas") return cb({ ok: false, error: "Esta sala é modo Squad." });
     if (room.status !== "lobby") return cb({ ok: false, error: "Jogo já começou." });
+
+    if (room.mode === "duet") {
+      if (!["p1", "p2"].includes(team)) return cb({ ok: false, error: "Vaga inválida." });
+      const takenByOther = [...room.players.entries()].some(([sid, p]) => sid !== socket.id && p.team === team);
+      if (takenByOther) return cb({ ok: false, error: "Vaga já ocupada." });
+      const player = room.players.get(socket.id);
+      player.team = team;
+      player.role = null;
+      cb({ ok: true });
+      broadcastState(room);
+      return;
+    }
+
+    if (room.mode !== "duplas") return cb({ ok: false, error: "Esta sala é modo Squad." });
     if (!MODES.duplas.teams.includes(team) || !["spy", "agent"].includes(role)) {
       return cb({ ok: false, error: "Vaga inválida." });
     }
@@ -250,6 +317,32 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room) return cb({ ok: false, error: "Sala inválida." });
     if (socket.id !== room.hostId) return cb({ ok: false, error: "Só o host pode iniciar." });
+
+    if (room.mode === "duet") {
+      const players = [...room.players.values()];
+      const hasP1 = players.some((p) => p.team === "p1");
+      const hasP2 = players.some((p) => p.team === "p2");
+      if (!hasP1 || !hasP2) {
+        return cb({ ok: false, error: "Os dois jogadores precisam entrar antes de iniciar." });
+      }
+      const built = buildDuetBoard();
+      room.board = built.board;
+      room.keyCards = built.keyCards;
+      room.agentsFound = 0;
+      room.agentsTotal = built.agentsTotal;
+      room.currentTeam = "p1";
+      room.winner = null;
+      room.loserTeam = null;
+      room.history = [];
+      room.guessLimit = Infinity;
+      room.guessesUsed = 0;
+      room.status = "playing";
+      startCluePhase(room);
+      cb({ ok: true });
+      broadcastState(room);
+      return;
+    }
+
     if (room.mode === "squad") {
       const players = [...room.players.values()];
       const hasRed = players.some((p) => p.team === "red");
@@ -277,7 +370,9 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || room.status !== "playing" || room.phase !== "clue") return;
     const player = room.players.get(socket.id);
-    if (!player || player.role !== "spy" || player.team !== room.currentTeam) return;
+    if (!player) return;
+    const isClueGiver = room.mode === "duet" ? player.team === room.currentTeam : player.role === "spy" && player.team === room.currentTeam;
+    if (!isClueGiver) return;
     const n = parseInt(String(number).trim(), 10);
     room.guessLimit = Number.isInteger(n) && n >= 0 ? n + 1 : Infinity;
     room.guessesUsed = 0;
@@ -297,7 +392,10 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || room.status !== "playing" || room.phase !== "guess") return;
     const player = room.players.get(socket.id);
-    if (!player || player.role !== "agent" || player.team !== room.currentTeam) return;
+    if (!player) return;
+    const isDuet = room.mode === "duet";
+    const isGuesser = isDuet ? player.team && player.team !== room.currentTeam : player.role === "agent" && player.team === room.currentTeam;
+    if (!isGuesser) return;
     const card = room.board[index];
     if (!card || card.revealed) return;
 
@@ -310,14 +408,36 @@ io.on("connection", (socket) => {
       playerName: player.name,
       word: card.word,
       owner: card.owner,
-      correct: card.owner === player.team,
+      correct: isDuet ? card.owner === "agent" : card.owner === player.team,
     });
 
     if (card.owner === "assassin") {
       stopTimer(room);
       room.status = "over";
       room.winner = null;
-      room.loserTeam = player.team;
+      room.loserTeam = isDuet ? "shared" : player.team;
+      broadcastState(room);
+      return;
+    }
+
+    if (isDuet) {
+      if (card.owner === "agent") {
+        room.agentsFound += 1;
+        if (room.agentsFound >= room.agentsTotal) {
+          stopTimer(room);
+          room.status = "over";
+          room.winner = "shared";
+          broadcastState(room);
+          return;
+        }
+        if (room.guessesUsed >= room.guessLimit) {
+          passTurn(room);
+          startCluePhase(room);
+        }
+      } else {
+        passTurn(room);
+        startCluePhase(room);
+      }
       broadcastState(room);
       return;
     }
@@ -348,7 +468,12 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || room.status !== "playing") return;
     const player = room.players.get(socket.id);
-    if (!player || player.team !== room.currentTeam) return;
+    if (!player) return;
+    if (room.mode === "duet") {
+      if (!["p1", "p2"].includes(player.team)) return;
+    } else if (player.team !== room.currentTeam) {
+      return;
+    }
     passTurn(room);
     startCluePhase(room);
     broadcastState(room);
@@ -358,6 +483,25 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room) return;
     if (socket.id !== room.hostId) return;
+
+    if (room.mode === "duet") {
+      const built = buildDuetBoard();
+      room.board = built.board;
+      room.keyCards = built.keyCards;
+      room.agentsFound = 0;
+      room.agentsTotal = built.agentsTotal;
+      room.currentTeam = "p1";
+      room.winner = null;
+      room.loserTeam = null;
+      room.history = [];
+      room.guessLimit = Infinity;
+      room.guessesUsed = 0;
+      room.status = "playing";
+      startCluePhase(room);
+      broadcastState(room);
+      return;
+    }
+
     room.board = buildBoard(room.mode);
     room.teamRemaining = { ...MODES[room.mode].teamCounts };
     room.currentTeam = MODES[room.mode].teams[0];

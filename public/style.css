@@ -279,6 +279,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .card.revealed.team4, .card.spy-hint.team4 { background: var(--team4); color: var(--team4-text); }
 .card.revealed.neutral, .card.spy-hint.neutral { background: var(--neutral); color: var(--neutral-text); }
 .card.revealed.assassin, .card.spy-hint.assassin { background: var(--assassin); color: #fff; }
+.card.revealed.duet-agent, .card.spy-hint.duet-agent { background: var(--purple); color: #fff; }
 
 .card.spy-hint { opacity: 0.75; border: 2px dashed rgba(255, 255, 255, 0.6); }
 .card.revealed { opacity: 1; }

@@ -3,10 +3,12 @@ const socket = io();
 const MODE_TEAMS = {
   duplas: [1, 2, 3, 4],
   squad: ["red", "blue"],
+  duet: ["p1", "p2"],
 };
 const MODE_TEAM_NAMES = {
   duplas: { 1: "Vermelha", 2: "Azul", 3: "Verde", 4: "Amarela" },
   squad: { red: "Vermelho", blue: "Azul" },
+  duet: { p1: "Jogador 1", p2: "Jogador 2" },
 };
 const MODE_TEAM_TOTALS = {
   duplas: { 1: 9, 2: 8, 3: 8, 4: 8 },
@@ -15,14 +17,16 @@ const MODE_TEAM_TOTALS = {
 const PHASE_DURATION_MS = 90 * 1000;
 
 function cssTeamKey(team) {
-  if (team === "red") return 1;
-  if (team === "blue") return 2;
+  if (team === "red" || team === "p1") return 1;
+  if (team === "blue" || team === "p2") return 2;
   return team;
 }
 
 function teamLabel(mode, team) {
   const name = MODE_TEAM_NAMES[mode][team];
-  return mode === "duplas" ? `Dupla ${name}` : `Lado ${name}`;
+  if (mode === "duplas") return `Dupla ${name}`;
+  if (mode === "squad") return `Lado ${name}`;
+  return name;
 }
 
 function initials(name) {
@@ -43,9 +47,11 @@ function setCreateMode(mode) {
   createMode = mode;
   el("mode-duplas").classList.toggle("active", mode === "duplas");
   el("mode-squad").classList.toggle("active", mode === "squad");
+  el("mode-duet").classList.toggle("active", mode === "duet");
 }
 el("mode-duplas").addEventListener("click", () => setCreateMode("duplas"));
 el("mode-squad").addEventListener("click", () => setCreateMode("squad"));
+el("mode-duet").addEventListener("click", () => setCreateMode("duet"));
 
 el("btn-create").addEventListener("click", () => {
   const name = el("name-input").value.trim();
@@ -261,22 +267,58 @@ function renderTeamPanels(leftId, rightId, options) {
   });
 }
 
+function buildDuetSeatPanel(team, { interactive }) {
+  const panel = document.createElement("div");
+  panel.className = "team-panel";
+  panel.style.background = `var(--team${cssTeamKey(team)})`;
+  if (myState.status === "playing" && myState.currentTeam === team) {
+    panel.classList.add("active-turn");
+  }
+
+  const title = document.createElement("div");
+  title.className = "team-panel-title";
+  title.textContent = MODE_TEAM_NAMES.duet[team];
+  panel.appendChild(title);
+
+  const player = myState.players.find((p) => p.team === team);
+  panel.appendChild(avatarRow(player ? [player] : [], { interactive, team, role: null }));
+
+  if (myState.status === "playing") {
+    const tag = document.createElement("div");
+    tag.className = "team-panel-title";
+    tag.textContent = myState.currentTeam === team ? "Dando dica" : "Adivinhando";
+    panel.appendChild(tag);
+  }
+
+  return panel;
+}
+
+function renderDuetPanels(leftId, rightId, interactive) {
+  const leftEl = el(leftId);
+  const rightEl = el(rightId);
+  leftEl.innerHTML = "";
+  rightEl.innerHTML = "";
+  leftEl.appendChild(buildDuetSeatPanel("p1", { interactive }));
+  rightEl.appendChild(buildDuetSeatPanel("p2", { interactive }));
+}
+
 // ---- Lobby ----
 
 function renderLobby() {
   el("room-code").textContent = myState.code;
   const isHost = myState.you.id === myState.hostId;
-  const isDuplas = myState.mode === "duplas";
+  const mode = myState.mode;
 
-  renderTeamPanels("lobby-panels-left", "lobby-panels-right", {
-    interactive: isDuplas,
-    showScore: false,
-  });
-
-  if (isDuplas) {
+  if (mode === "duet") {
+    renderDuetPanels("lobby-panels-left", "lobby-panels-right", true);
+    el("squad-unassigned").textContent = "";
+    el("btn-shuffle").classList.add("hidden");
+  } else if (mode === "duplas") {
+    renderTeamPanels("lobby-panels-left", "lobby-panels-right", { interactive: true, showScore: false });
     el("squad-unassigned").textContent = "";
     el("btn-shuffle").classList.add("hidden");
   } else {
+    renderTeamPanels("lobby-panels-left", "lobby-panels-right", { interactive: false, showScore: false });
     const unassigned = myState.players.filter((p) => !p.team);
     el("squad-unassigned").textContent = unassigned.length
       ? `Aguardando embaralhar: ${unassigned.map((p) => p.name).join(", ")}`
@@ -295,19 +337,32 @@ function renderLobby() {
 function renderGame() {
   const mode = myState.mode;
   const you = myState.you;
+  const isDuet = mode === "duet";
   const isMyTurn = you.team === myState.currentTeam;
+  const isClueGiver = isDuet ? !!you.team && you.team === myState.currentTeam : you.role === "spy" && isMyTurn;
+  const isGuesser = isDuet ? !!you.team && you.team !== myState.currentTeam : you.role === "agent" && isMyTurn;
 
-  renderTeamPanels("game-panels-left", "game-panels-right", {
-    interactive: false,
-    showScore: true,
-  });
+  if (isDuet) {
+    renderDuetPanels("game-panels-left", "game-panels-right", false);
+  } else {
+    renderTeamPanels("game-panels-left", "game-panels-right", { interactive: false, showScore: true });
+  }
 
-  el("turn-indicator").textContent = `Turno: ${teamLabel(mode, myState.currentTeam)}`;
+  el("turn-indicator").textContent = isDuet
+    ? `Dando dica: ${teamLabel(mode, myState.currentTeam)}`
+    : `Turno: ${teamLabel(mode, myState.currentTeam)}`;
   el("turn-indicator").style.background = `var(--team${cssTeamKey(myState.currentTeam)})`;
   el("turn-indicator").style.color = "#10121a";
 
-  const roleLabel = you.role === "spy" ? "Espião" : you.role === "agent" ? "Agente" : "Observador";
-  let youAreText = you.team ? `Você é: ${teamLabel(mode, you.team)} — ${roleLabel}` : "Você está assistindo.";
+  let youAreText;
+  if (!you.team) {
+    youAreText = "Você está assistindo.";
+  } else if (isDuet) {
+    youAreText = `Você é: ${teamLabel(mode, you.team)} — ${isClueGiver ? "dando a dica" : "adivinhando"}`;
+  } else {
+    const roleLabel = you.role === "spy" ? "Espião" : you.role === "agent" ? "Agente" : "Observador";
+    youAreText = `Você é: ${teamLabel(mode, you.team)} — ${roleLabel}`;
+  }
   if (myState.status === "playing" && myState.phase === "guess") {
     const left = myState.guessLimit === null ? "sem limite" : Math.max(0, myState.guessLimit - myState.guessesUsed);
     youAreText += ` — Palpites restantes: ${left}`;
@@ -323,16 +378,11 @@ function renderGame() {
 
     if (card.revealed) {
       div.classList.add("revealed", ownerClass(card.owner));
-    } else if (you.role === "spy" && card.owner) {
+    } else if (card.owner && (isDuet || you.role === "spy")) {
       div.classList.add("spy-hint", ownerClass(card.owner));
     }
 
-    const canClick =
-      myState.status === "playing" &&
-      myState.phase === "guess" &&
-      !card.revealed &&
-      you.role === "agent" &&
-      isMyTurn;
+    const canClick = myState.status === "playing" && myState.phase === "guess" && !card.revealed && isGuesser;
 
     if (canClick) {
       div.classList.add("clickable");
@@ -346,10 +396,10 @@ function renderGame() {
 
   renderHistory(mode);
 
-  const canSendClue = myState.status === "playing" && myState.phase === "clue" && you.role === "spy" && isMyTurn;
+  const canSendClue = myState.status === "playing" && myState.phase === "clue" && isClueGiver;
   el("clue-input-row").classList.toggle("hidden", !canSendClue);
 
-  const canEndTurn = myState.status === "playing" && isMyTurn;
+  const canEndTurn = myState.status === "playing" && (isDuet ? !!you.team : isMyTurn);
   el("btn-end-turn").disabled = !canEndTurn;
 
   const isHost = myState.you.id === myState.hostId;
@@ -363,6 +413,28 @@ function renderResultCard(mode) {
   el("controls").classList.toggle("hidden", isOver);
   el("result-card").classList.toggle("hidden", !isOver);
   if (!isOver) return;
+
+  if (mode === "duet") {
+    el("result-emoji").textContent = myState.winner ? "🎉" : "💀";
+    el("result-title").textContent = myState.winner
+      ? "Vocês encontraram todos os agentes!"
+      : "Vocês caíram no assassino!";
+
+    const scoresEl = el("result-scores");
+    scoresEl.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "result-score-row";
+    row.style.background = "#fff";
+    row.style.color = "var(--purple)";
+    const label = document.createElement("div");
+    label.textContent = "Agentes encontrados";
+    row.appendChild(label);
+    const score = document.createElement("div");
+    score.textContent = `${myState.agentsFound} / ${myState.agentsTotal}`;
+    row.appendChild(score);
+    scoresEl.appendChild(row);
+    return;
+  }
 
   let emoji = "🎊";
   let title = "";
@@ -463,5 +535,6 @@ function renderHistory(mode) {
 function ownerClass(owner) {
   if (owner === "neutral") return "neutral";
   if (owner === "assassin") return "assassin";
+  if (owner === "agent") return "duet-agent";
   return `team${cssTeamKey(owner)}`;
 }
