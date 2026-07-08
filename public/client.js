@@ -8,6 +8,10 @@ const MODE_TEAM_NAMES = {
   duplas: { 1: "Vermelha", 2: "Azul", 3: "Verde", 4: "Amarela" },
   squad: { red: "Vermelho", blue: "Azul" },
 };
+const MODE_TEAM_TOTALS = {
+  duplas: { 1: 9, 2: 8, 3: 8, 4: 8 },
+  squad: { red: 9, blue: 8 },
+};
 const PHASE_DURATION_MS = 90 * 1000;
 
 function cssTeamKey(team) {
@@ -21,8 +25,8 @@ function teamLabel(mode, team) {
   return mode === "duplas" ? `Dupla ${name}` : `Lado ${name}`;
 }
 
-function avatarUrl(seed) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+function initials(name) {
+  return (name || "?").trim().slice(0, 2).toUpperCase();
 }
 
 let myState = null;
@@ -92,6 +96,14 @@ el("btn-new-game").addEventListener("click", () => {
   socket.emit("new-game");
 });
 
+el("btn-play-again").addEventListener("click", () => {
+  socket.emit("new-game");
+});
+
+el("btn-back-lobby").addEventListener("click", () => {
+  window.location.reload();
+});
+
 el("btn-send-clue").addEventListener("click", () => {
   const word = el("clue-word").value.trim();
   const number = el("clue-number").value.trim();
@@ -145,16 +157,17 @@ function render() {
 
 // ---- Team panels (shared between lobby and game screen) ----
 
-function avatarItem(player) {
+function avatarItem(player, team) {
   const item = document.createElement("div");
   item.className = "avatar-item";
   if (player.id === myState.you.id) item.classList.add("mine");
 
-  const img = document.createElement("img");
-  img.className = "avatar-img";
-  img.src = avatarUrl(player.id);
-  img.alt = player.name;
-  item.appendChild(img);
+  const circle = document.createElement("div");
+  circle.className = "avatar-circle";
+  circle.style.background = `var(--team${cssTeamKey(team)})`;
+  circle.style.color = `var(--team${cssTeamKey(team)}-text)`;
+  circle.textContent = initials(player.name);
+  item.appendChild(circle);
 
   const name = document.createElement("div");
   name.className = "avatar-name";
@@ -190,7 +203,7 @@ function emptyAvatarItem(team, role) {
 function avatarRow(players, { interactive, team, role }) {
   const row = document.createElement("div");
   row.className = "avatar-row";
-  players.forEach((p) => row.appendChild(avatarItem(p)));
+  players.forEach((p) => row.appendChild(avatarItem(p, team)));
 
   if (interactive && players.length === 0) {
     row.appendChild(emptyAvatarItem(team, role));
@@ -273,7 +286,7 @@ function renderLobby() {
 
   el("btn-start").classList.toggle("hidden", !isHost);
   el("start-hint").textContent = isHost
-    ? "Quando todos estiverem prontos, clique em Iniciar Jogo."
+    ? "Quando todos estiverem prontos, clique em VAMOS COMEÇAR!"
     : "Aguardando o host iniciar a partida.";
 }
 
@@ -342,20 +355,60 @@ function renderGame() {
   const isHost = myState.you.id === myState.hostId;
   el("btn-new-game").classList.toggle("hidden", !isHost);
 
-  const banner = el("banner");
-  if (myState.status === "over") {
-    banner.classList.remove("hidden");
-    if (myState.winner) {
-      banner.textContent = `${teamLabel(mode, myState.winner)} venceu.`;
-      banner.style.background = `var(--team${cssTeamKey(myState.winner)})`;
-    } else if (myState.loserTeam) {
-      banner.textContent = `${teamLabel(mode, myState.loserTeam)} caiu no assassino. Fim de jogo.`;
-      banner.style.background = "#222";
-      banner.style.color = "#fff";
-    }
-  } else {
-    banner.classList.add("hidden");
+  renderResultCard(mode);
+}
+
+function renderResultCard(mode) {
+  const isOver = myState.status === "over";
+  el("controls").classList.toggle("hidden", isOver);
+  el("result-card").classList.toggle("hidden", !isOver);
+  if (!isOver) return;
+
+  let emoji = "🎊";
+  let title = "";
+  if (myState.winner) {
+    title = `${teamLabel(mode, myState.winner)} venceu!`;
+  } else if (myState.loserTeam) {
+    emoji = "💀";
+    title = `${teamLabel(mode, myState.loserTeam)} caiu no assassino!`;
   }
+  el("result-emoji").textContent = emoji;
+  el("result-title").textContent = title;
+
+  const totals = MODE_TEAM_TOTALS[mode];
+  const rows = MODE_TEAMS[mode]
+    .map((team) => {
+      const total = totals[team];
+      const remaining = myState.teamRemaining[team] ?? total;
+      const found = total - remaining;
+      return { team, found, total, frac: total ? found / total : 0 };
+    })
+    .sort((a, b) => b.frac - a.frac);
+
+  const scoresEl = el("result-scores");
+  scoresEl.innerHTML = "";
+  rows.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "result-score-row";
+    if (i === 0) {
+      row.style.background = "#fff";
+      row.style.color = `var(--team${cssTeamKey(r.team)})`;
+    } else {
+      row.style.background = "oklch(55% 0.16 300 / 0.5)";
+      row.style.border = "2px solid #fff";
+      row.style.color = "#fff";
+    }
+
+    const label = document.createElement("div");
+    label.textContent = `${i === 0 ? "🏆 " : ""}${MODE_TEAM_NAMES[mode][r.team]}`;
+    row.appendChild(label);
+
+    const score = document.createElement("div");
+    score.textContent = `${r.found} / ${r.total}`;
+    row.appendChild(score);
+
+    scoresEl.appendChild(row);
+  });
 }
 
 function renderHistory(mode) {

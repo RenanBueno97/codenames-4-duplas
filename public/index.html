@@ -3,25 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Codenames — 4 Duplas</title>
+<title>Codenames 🎉</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="lobby-screen" class="screen">
-  <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
-
   <div id="join-panel" class="panel">
-    <label>Seu nome
-      <input id="name-input" type="text" maxlength="20" placeholder="Digite seu nome">
-    </label>
-    <div class="mode-row">
-      <button id="mode-duplas" class="mode-btn active">4 Duplas</button>
-      <button id="mode-squad" class="mode-btn">Squad</button>
+    <div class="lobby-title">
+      <div class="lobby-title-main">Codenames 🎉</div>
     </div>
-    <p class="hint">4 Duplas: 4 times de 2 (espião + agente). Squad: 2 times de até 5, embaralhados.</p>
+
+    <div class="mode-row">
+      <button id="mode-duplas" class="mode-btn active">DUPLAS 2x2x2x2</button>
+      <button id="mode-squad" class="mode-btn">SQUAD</button>
+    </div>
+    <p class="hint">Duplas: 4 times de 2 (espião + agente). Squad: 2 times de até 5, embaralhados.</p>
+
+    <div class="field-label">SEU NOME</div>
+    <input id="name-input" type="text" maxlength="20" placeholder="ex: Jão_Vitor">
+
     <div class="join-row">
-      <button id="btn-create">Criar Sala</button>
+      <button id="btn-create" class="cta-green">Criar Sala 🚀</button>
       <span>ou</span>
       <input id="code-input" type="text" maxlength="4" placeholder="CÓDIGO">
       <button id="btn-join">Entrar</button>
@@ -34,11 +39,11 @@
       <div id="lobby-panels-left" class="team-column"></div>
 
       <div class="center-panel">
-        <h2>Sala <span id="room-code"></span></h2>
-        <p class="hint">Compartilhe esse código com o resto do grupo.</p>
+        <div class="lobby-title-main small">Codenames 🎉</div>
+        <div class="room-subtitle">sala <span id="room-code"></span> — para jogar com a galera</div>
         <p id="squad-unassigned" class="hint"></p>
         <button id="btn-shuffle" class="hidden">Embaralhar Equipes</button>
-        <button id="btn-start" class="hidden">Iniciar Jogo</button>
+        <button id="btn-start" class="cta-green hidden">VAMOS COMEÇAR! 🚀</button>
         <p id="start-hint" class="hint"></p>
         <p id="room-error" class="error"></p>
       </div>
@@ -49,7 +54,7 @@
 </div>
 
 <div id="game-screen" class="screen hidden">
-  <h1>Codenames <span class="subtitle">4 Duplas</span></h1>
+  <div class="lobby-title-main small center-title">Codenames 🎉</div>
 
   <div class="match-layout">
     <div id="game-panels-left" class="team-column"></div>
@@ -61,20 +66,28 @@
       <div id="you-are" class="you-are"></div>
 
       <div class="clue-input-row hidden" id="clue-input-row">
-        <input id="clue-word" type="text" maxlength="40" placeholder="Palavra-dica">
-        <input id="clue-number" type="text" maxlength="8" placeholder="Nº">
-        <button id="btn-send-clue">Enviar Dica</button>
+        <input id="clue-word" type="text" maxlength="40" placeholder="palavra-chave">
+        <input id="clue-number" type="text" maxlength="8" placeholder="nº">
+        <button id="btn-send-clue">DAR DICA</button>
       </div>
 
-      <div class="register-title">Registro</div>
+      <div class="register-title">REGISTRO</div>
       <div id="history-log" class="history-log"></div>
 
-      <div class="controls">
+      <div id="controls" class="controls">
         <button id="btn-end-turn">Encerrar Turno</button>
         <button id="btn-new-game" class="hidden">Nova Partida</button>
       </div>
 
-      <div id="banner" class="banner hidden"></div>
+      <div id="result-card" class="result-card hidden">
+        <div class="result-label">FIM DE JOGO <span id="result-emoji"></span></div>
+        <div id="result-title" class="result-title"></div>
+        <div id="result-scores" class="result-scores"></div>
+        <div class="result-actions">
+          <button id="btn-play-again" class="cta-green">JOGAR DE NOVO 🔁</button>
+          <button id="btn-back-lobby" class="cta-white">LOBBY</button>
+        </div>
+      </div>
     </div>
 
     <div id="game-panels-right" class="team-column"></div>
