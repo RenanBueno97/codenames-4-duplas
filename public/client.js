@@ -3,17 +3,21 @@ const socket = io();
 const MODE_TEAMS = {
   duplas: [1, 2, 3, 4],
   squad: ["red", "blue"],
+  classico: ["red", "blue"],
   duet: ["p1", "p2"],
 };
 const MODE_TEAM_NAMES = {
   duplas: { 1: "Vermelha", 2: "Azul", 3: "Verde", 4: "Amarela" },
   squad: { red: "Vermelho", blue: "Azul" },
+  classico: { red: "Vermelho", blue: "Azul" },
   duet: { p1: "Jogador 1", p2: "Jogador 2" },
 };
 const MODE_TEAM_TOTALS = {
   duplas: { 1: 9, 2: 8, 3: 8, 4: 8 },
   squad: { red: 9, blue: 8 },
+  classico: { red: 9, blue: 8 },
 };
+const SLOT_PICK_MODES = ["duplas", "classico"];
 const PHASE_DURATION_MS = 90 * 1000;
 
 function cssTeamKey(team) {
@@ -26,6 +30,7 @@ function teamLabel(mode, team) {
   const name = MODE_TEAM_NAMES[mode][team];
   if (mode === "duplas") return `Dupla ${name}`;
   if (mode === "squad") return `Lado ${name}`;
+  if (mode === "classico") return `Time ${name}`;
   return name;
 }
 
@@ -47,10 +52,12 @@ function setCreateMode(mode) {
   createMode = mode;
   el("mode-duplas").classList.toggle("active", mode === "duplas");
   el("mode-squad").classList.toggle("active", mode === "squad");
+  el("mode-classico").classList.toggle("active", mode === "classico");
   el("mode-duet").classList.toggle("active", mode === "duet");
 }
 el("mode-duplas").addEventListener("click", () => setCreateMode("duplas"));
 el("mode-squad").addEventListener("click", () => setCreateMode("squad"));
+el("mode-classico").addEventListener("click", () => setCreateMode("classico"));
 el("mode-duet").addEventListener("click", () => setCreateMode("duet"));
 
 el("btn-create").addEventListener("click", () => {
@@ -313,7 +320,7 @@ function renderLobby() {
     renderDuetPanels("lobby-panels-left", "lobby-panels-right", true);
     el("squad-unassigned").textContent = "";
     el("btn-shuffle").classList.add("hidden");
-  } else if (mode === "duplas") {
+  } else if (SLOT_PICK_MODES.includes(mode)) {
     renderTeamPanels("lobby-panels-left", "lobby-panels-right", { interactive: true, showScore: false });
     el("squad-unassigned").textContent = "";
     el("btn-shuffle").classList.add("hidden");

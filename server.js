@@ -23,10 +23,18 @@ const MODES = {
     neutralCount: 7,
     maxPerSide: 5,
   },
+  classico: {
+    teams: ["red", "blue"],
+    teamCounts: { red: 9, blue: 8 },
+    neutralCount: 7,
+    maxPerSide: 2,
+  },
   duet: {
     teams: ["p1", "p2"],
   },
 };
+
+const SLOT_PICK_MODES = ["duplas", "classico"];
 
 const DUET_AGENT_COUNT = 9;
 const DUET_ASSASSIN_COUNT = 1;
@@ -238,7 +246,7 @@ function passTurn(room) {
 
 io.on("connection", (socket) => {
   socket.on("create-room", ({ name, mode }, cb) => {
-    const finalMode = mode === "squad" ? "squad" : mode === "duet" ? "duet" : "duplas";
+    const finalMode = ["squad", "duet", "classico"].includes(mode) ? mode : "duplas";
     const code = makeRoomCode();
     const room = newRoom(code, socket.id, finalMode);
     room.players.set(socket.id, { name: name || "Jogador", team: null, role: null });
@@ -275,8 +283,8 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room.mode !== "duplas") return cb({ ok: false, error: "Esta sala é modo Squad." });
-    if (!MODES.duplas.teams.includes(team) || !["spy", "agent"].includes(role)) {
+    if (!SLOT_PICK_MODES.includes(room.mode)) return cb({ ok: false, error: "Este modo não usa seleção manual de vaga." });
+    if (!MODES[room.mode].teams.includes(team) || !["spy", "agent"].includes(role)) {
       return cb({ ok: false, error: "Vaga inválida." });
     }
     if (slotTaken(room, team, role, socket.id)) {
