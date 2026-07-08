@@ -273,29 +273,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .card.clickable:hover { border-color: var(--purple); }
 .card.not-clickable { cursor: default; }
 
-.card.spy-hint::after {
-  content: "";
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--dot-color);
-}
-.card.spy-hint.team1 { --dot-color: var(--team1); }
-.card.spy-hint.team2 { --dot-color: var(--team2); }
-.card.spy-hint.team3 { --dot-color: var(--team3); }
-.card.spy-hint.team4 { --dot-color: var(--team4); }
-.card.spy-hint.neutral { --dot-color: var(--neutral); }
-.card.spy-hint.assassin { --dot-color: var(--assassin); }
+.card.revealed.team1, .card.spy-hint.team1 { background: var(--team1); color: var(--team1-text); }
+.card.revealed.team2, .card.spy-hint.team2 { background: var(--team2); color: var(--team2-text); }
+.card.revealed.team3, .card.spy-hint.team3 { background: var(--team3); color: var(--team3-text); }
+.card.revealed.team4, .card.spy-hint.team4 { background: var(--team4); color: var(--team4-text); }
+.card.revealed.neutral, .card.spy-hint.neutral { background: var(--neutral); color: var(--neutral-text); }
+.card.revealed.assassin, .card.spy-hint.assassin { background: var(--assassin); color: #fff; }
 
-.card.revealed.team1 { background: var(--team1); color: var(--team1-text); }
-.card.revealed.team2 { background: var(--team2); color: var(--team2-text); }
-.card.revealed.team3 { background: var(--team3); color: var(--team3-text); }
-.card.revealed.team4 { background: var(--team4); color: var(--team4-text); }
-.card.revealed.neutral { background: var(--neutral); color: var(--neutral-text); }
-.card.revealed.assassin { background: var(--assassin); color: #fff; }
+.card.spy-hint { opacity: 0.75; border: 2px dashed rgba(255, 255, 255, 0.6); }
+.card.revealed { opacity: 1; }
 
 .clue-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .clue-input-row input { flex: 1; padding: 9px 12px; border-radius: 10px; border: 2px solid oklch(90% 0.01 80); }
